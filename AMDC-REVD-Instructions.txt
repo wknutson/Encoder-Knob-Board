@@ -1,0 +1,108 @@
+- Download Vivado/Xilinx SDK 2019.1
+- Download zip file (https://github.com/Severson-Group/AMDC-Firmware/issues/10) and place it in C:\Xilinx\Vivado\2019.1\data\boards\board_files
+- Create a New Folder in any location to hold project files. This will be known as MASTER_DIR
+- Open Git Gui in folder
+	- Create New Repository
+	- Browse -> Select your folder
+- Open Git Bash in folder
+	- git submodule add https://github.com/Severson-Group/AMDC-Firmware
+- Open .gitmodules
+	- Add branch = develop line (code below)
+	- [submodule "AMDC-Firmware"]
+		path = AMDC-Firmware
+		url = https://github.com/Severson-Group/AMDC-Firmware
+		branch = develop
+	- Save
+- Open Folders AMDC-Firmware -> SDK -> app_cpu1 and copy user folder to $MASTER_DIR
+- Rename copied folder to "my-AMDC-private-C-code" (other names are acceptable but they can't have spaces)
+- Open Vivado 2019.1
+- Select Tools -> Run Tcl Script -> $MASTER_DIR -> AMDC-Firmware -> import_revd.tcl -> OK
+- Block Diagram Appears 
+	- If it doesn't ensure picozed_7030_fmc2.zip was downloaded and placed correctly
+	- Also check Tcl Console and Messages
+- Program and Debug -> Generate Bitstream
+	- Click through pop-ups and wait until Vivado says write_bitstream Complete in the top right (~10 min)
+	- Close Bitstream Generation Complete pop-up
+- File -> Export -> Export Hardware
+	- Ensure Include Bitstream is unchecked
+	- Export to: $MASTER_DIR -> my-AMDC-private-C-code
+- File -> Launch SDK
+	- Exported Location: $MASTER_DIR -> my-AMDC-private-C-code
+	- Workspace: $MASTER_DIR -> AMDC-Firmware -> SDK
+- Close Welcome tab
+- Vivado can now be closed and Xilinx may now be opened directly in the future
+- Ensure amdc_revd_wrapper_hw_platform_0 exists in Project Explorer
+- File -> New -> Board Support Package
+	- Project Name: amdc_bsp_cpu0
+	- Finish
+	- Wait for pop-up
+	- Select lwip*** and xilffs
+	- OK
+- File -> New -> Board Support Package
+	- Project Name: amdc_bsp_cpu1
+	- CPU: ps7_cortexa9_1
+	- Finish
+	- Wait for pop-up
+	- Select lwip*** and xilffs
+	- Drivers -> ps7_cortexa9_1
+		- Select box in Value column and extra_compiler_flags row
+		- Replace box with "-mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -nostartfiles -g -Wall -Wextra -DUSE_AMP=1"
+	- OK
+- File -> Open Project from File System
+	- Directory: $MASTER_DIR -> my-AMDC-private-C-code
+	- OK
+	- Click Select All
+	- Finish
+- File -> Open Project from File System
+	- Directory: $MASTER_DIR -> AMDC-Firmware -> SDK -> app_cpu0
+	- OK
+	- Click Select All
+	- Finish
+- Errors should appear in the problems tab
+- In the Project Explorer, delete common folder from app_cpu1 project (if present)
+- Right Click app_cpu1 -> project properties
+	- C/C++ General -> Paths and Symbols -> Source Location -> Link Folder
+		- Check the Link to folder in the file system box
+		- Browse to $MASTER_DIR -> AMDC-Firmware -> SDK -> app_cpu1 -> Common
+		- OK
+	- Change to Includes tab
+		- Select /app_cpu1/src/common
+			- Edit
+			- Select Workspace
+			- Navigate to app_cpu1 -> common
+			- OK
+			- OK
+		- Select /app_cpu1/src
+			- Edit
+			- Select Workspace
+			- Navigate to app_cpu1
+			- OK
+			- OK
+		- If the last purple workspace isn't /amdc_bsp_cpu1/ps7_cortexa9_1/include
+			- Edit
+			- Select Workspace
+			- Navigate to /amdc_bsp_cpu1/ps7_cortexa9_1/include
+			- OK
+			- OK
+	- Change to Library Paths tab
+		- If /amdc_bsp_cpu1/ps7_cortex9_1/lib doesn't appear...
+			- Add -> Workspace -> amdc_bsp_cpu1/ps7_cortex9_1/lib
+			- OK
+			- OK
+	- Change to C/C++ Build > Settings
+		- Change to Tool Settings tab
+			- ARM v7 gcc linker -> Inferred Options -> Software Platform
+				- If -Wl,--start-group,-lxil,-lgcc,-lc,--end-group doesn't appear under Inferred flags
+					- Add the following for Inferred Flags: -Wl,--start-group,-lxil,-lgcc,-lc,--end-group
+					- OK
+			- ARM v7 gcc linker > Libraries
+				- If m doesn't appear under Libraries
+					- Add m under Libraries
+					- OK
+	- Click OK to exit properties dialog
+- In the Project Explorer navigate to app_cpu1 -> usr and open user_config.h 
+	- Change #define USER_CONFIG_HARDWARE_TARGET (AMDC_REV_E) to #define USER_CONFIG_HARDWARE_TARGET (AMDC_REV_D)
+	- Save the Script
+- All Errors should be gone.
+	- If Errors exist: Project -> Clean...
+	- Then Build All (Ctrl + B)
